@@ -8,7 +8,9 @@ import (
 	"net/http"
 	"slices"
 	"strconv"
+	"strings"
 
+	"github.com/tebeka/selenium"
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
 )
@@ -20,14 +22,68 @@ var nameAttr html.Attribute = html.Attribute{Namespace: "", Key: "class", Val: "
 var chapterAttr html.Attribute = html.Attribute{Namespace: "", Key: "class", Val: "text-[13px] text-[#999]"}
 var ratingAttr html.Attribute = html.Attribute{Namespace: "", Key: "class", Val: "flex text-[12px] text-[#999]"}
 
+const chapterAddress = "/chapter/"
 const nodeTag atom.Atom = atom.Div
 const baseAddress string = "https://asuracomic.net/"
+
+var manwhaPageAttr = [...]html.Attribute{{Namespace: "", Key: "class", Val: "py-8 -mx-5 md:mx-0 flex flex-col items-center justify-center"}}
 
 type AsuraDriver struct {
 }
 
 func (ad AsuraDriver) GetBaseAddress() string {
 	return baseAddress
+}
+
+func (ad AsuraDriver) GetManwhaPage(manwhaResource *ManwhaResource, page uint16, seleniumDriver selenium.WebDriver) (*ManwhaPage, error) {
+	if page > manwhaResource.GetNChapters() {
+		return nil, fmt.Errorf("requested chapter %d of %s but it has only %d chapter", page, manwhaResource.address, manwhaResource.nChapter)
+	}
+
+	combinedAddress := manwhaResource.address + chapterAddress + strconv.Itoa(int(page))
+	fmt.Println(combinedAddress)
+	err := seleniumDriver.Get(combinedAddress)
+
+	if err != nil {
+		panic(err)
+	}
+
+	htmlPage, err := seleniumDriver.PageSource()
+	if err != nil {
+		panic(err)
+	}
+	err = seleniumDriver.CloseWindow(combinedAddress)
+	if err != nil {
+		panic(err)
+	}
+
+	startNode, err := html.Parse(strings.NewReader(htmlPage))
+	if err != nil {
+		panic(err)
+	}
+	divNode, err := manwhaparser.FindTag(startNode, atom.Div, manwhaPageAttr[:])
+
+	if err != nil {
+		panic(err)
+	}
+
+	imgsNodes, err := manwhaparser.FindTags(divNode, atom.Img, nil)
+
+	if err != nil {
+		panic(err)
+	}
+
+	var manwhaPage *ManwhaPage = new(ManwhaPage)
+	for _, elem := range imgsNodes {
+
+		val, err := manwhaparser.GetAttributeFromNode(elem, "src")
+		if err != nil {
+			fmt.Println("Error" + err.Error())
+			continue
+		}
+		manwhaPage.ImageUrls = append(manwhaPage.ImageUrls, val)
+	}
+	return manwhaPage, nil
 }
 
 func (ad AsuraDriver) ListComicsOnPage(page uint16) ([]*ManwhaResource, error) {

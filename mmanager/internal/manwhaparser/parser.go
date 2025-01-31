@@ -40,3 +40,28 @@ func FindTag(startNode *html.Node, tag atom.Atom, attributes []html.Attribute) (
 
 	return nil, fmt.Errorf("no node found with tag %s and requested attributes", string(tag))
 }
+
+func GetAttributeFromNode(node *html.Node, attribute string) (string, error) {
+	hrefIndex := slices.IndexFunc(node.Attr, func(attr html.Attribute) bool { return attr.Key == attribute })
+	if hrefIndex == -1 {
+		return "", fmt.Errorf("no attribute %s found ", attribute)
+	}
+	return node.Attr[hrefIndex].Val, nil
+}
+
+func FindTags(startNode *html.Node, tag atom.Atom, attributes []html.Attribute) ([]*html.Node, error) {
+	if startNode == nil {
+		return nil, errors.New("no start node given")
+	}
+	var nodes []*html.Node = make([]*html.Node, 0)
+
+	for node := range startNode.Descendants() {
+
+		if node.Type == html.ElementNode && node.DataAtom == tag && (len(attributes) == 0 || hasEverything(attributes, node.Attr)) {
+			nodes = append(nodes, node)
+		}
+
+	}
+
+	return nodes, nil
+}

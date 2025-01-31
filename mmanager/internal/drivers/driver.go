@@ -1,5 +1,7 @@
 package drivers
 
+import "github.com/tebeka/selenium"
+
 type ManwhaResource struct {
 	name     string
 	address  string
@@ -23,7 +25,7 @@ func (mr ManwhaResource) GetImageUrl() string {
 }
 
 type ManwhaPage struct {
-	body []byte
+	ImageUrls []string
 }
 
 type Manwha interface {
@@ -33,4 +35,5 @@ type Manwha interface {
 type ManwhaDriver interface {
 	GetBaseAddress() string
 	ListComicsOnPage(page uint16) []*ManwhaResource
+	GetManwhaPage(manwhaResource ManwhaResource, page uint16, seleniumDriver selenium.WebDriver) (*ManwhaPage, error)
 }
