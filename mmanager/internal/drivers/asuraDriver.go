@@ -28,7 +28,10 @@ const baseAddress string = "https://asuracomic.net/"
 
 var manwhaPageAttr = [...]html.Attribute{{Namespace: "", Key: "class", Val: "py-8 -mx-5 md:mx-0 flex flex-col items-center justify-center"}}
 
-type AsuraDriver struct {
+type AsuraDriver struct{}
+
+func (ad AsuraDriver) GetDriverName() string {
+	return "asura"
 }
 
 func (ad AsuraDriver) GetBaseAddress() string {
@@ -45,14 +48,17 @@ func (ad AsuraDriver) GetManwhaPage(manwhaResource *ManwhaResource, page uint16,
 	err := seleniumDriver.Get(combinedAddress)
 
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("cannot get page %s, error:%s", combinedAddress, err.Error())
 	}
 
 	htmlPage, err := seleniumDriver.PageSource()
+
 	if err != nil {
 		panic(err)
 	}
-	err = seleniumDriver.CloseWindow(combinedAddress)
+
+	//err = seleniumDriver.CloseWindow(combinedAddress)
+
 	if err != nil {
 		panic(err)
 	}
@@ -61,6 +67,11 @@ func (ad AsuraDriver) GetManwhaPage(manwhaResource *ManwhaResource, page uint16,
 	if err != nil {
 		panic(err)
 	}
+	if startNode == nil {
+		fmt.Println(htmlPage)
+		return nil, fmt.Errorf("start node is nil")
+	}
+
 	divNode, err := manwhaparser.FindTag(startNode, atom.Div, manwhaPageAttr[:])
 
 	if err != nil {
@@ -83,6 +94,7 @@ func (ad AsuraDriver) GetManwhaPage(manwhaResource *ManwhaResource, page uint16,
 		}
 		manwhaPage.ImageUrls = append(manwhaPage.ImageUrls, val)
 	}
+	manwhaPage.pageNumber = int(page)
 	return manwhaPage, nil
 }
 
