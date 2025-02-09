@@ -71,19 +71,23 @@ func (db *SqlLiteDatabase) AddManwhaResource(resource *ManwhaResource, driver st
 		log.Fatal("Cannot Add AddManwhaResource database cannot be inizialized")
 		return err
 	}
-
-	res, err := db.cursor.Exec(InsertManwhaResource, resource.name, resource.address, resource.nChapter, resource.imageUrl, driver)
+	res, err := db.cursor.Exec(InsertIfNotExistManwhaResource, resource.name, resource.address, resource.nChapter, resource.imageUrl, driver)
 
 	if err != nil {
 		log.Fatal(err)
 		return errors.New("cannot Insert ManwhaPage into db")
 	}
+	rows_affected, err := res.RowsAffected()
+	if err != nil || rows_affected == 0 {
+		log.Info("no row affected")
+		return nil
+	}
+
 	id, err := res.LastInsertId()
 	if err != nil {
 		log.Fatal("Cannot get last inserted Id of mawna resource ")
 		return err
 	}
-
 	resource.id = int(id)
 	if !addPages {
 		return nil
@@ -111,7 +115,7 @@ func (db *SqlLiteDatabase) AddManwhaPage(page *ManwhaPage, resourceId int) error
 		return errors.New("cannot start the transaction")
 	}
 
-	res, err := transaction.Exec(InsertManwhaPage, page.pageNumber, resourceId)
+	res, err := transaction.Exec(InsertIfNotExistManwhaPage, page.pageNumber, resourceId)
 
 	if err != nil {
 		log.Fatal(err)
@@ -123,11 +127,11 @@ func (db *SqlLiteDatabase) AddManwhaPage(page *ManwhaPage, resourceId int) error
 		log.Fatal("Cannot get last inserted Id of mawna resource ")
 		return err
 	}
-
+	fmt.Printf("The id of page is %d", id)
 	page.id = int(id)
 
 	for i, url := range page.ImageUrls {
-		_, err := transaction.Exec(InsertManwhaPageURL, url, page.id)
+		_, err := transaction.Exec(InsertIfNotExistManwhaPageURL, url, page.id)
 		if err != nil {
 			log.Fatal(err)
 			return fmt.Errorf("cannot insert url %d into the database", i)
@@ -161,7 +165,7 @@ func (db *SqlLiteDatabase) GetManwhaResource(id int, collectPages bool) (*Manwha
 	hasRow := row.Next()
 
 	if !hasRow {
-		log.Info("No Manwha resource with %d found", id)
+		log.Infof("No Manwha resource with %d found", id)
 
 		return nil, nil
 	}
@@ -205,7 +209,7 @@ func (db *SqlLiteDatabase) GetManwhaPage(id int) (*ManwhaPage, error) {
 		var currStr string
 		err = rows.Scan(&manwhaPage.id, &manwhaPage.pageNumber, &currStr)
 		if err != nil {
-			log.Warn("cannot scan url %s", err.Error())
+			log.Warnf("cannot scan url %s", err.Error())
 			continue
 		}
 		urls = append(urls, currStr)
@@ -233,7 +237,7 @@ func (db *SqlLiteDatabase) GetManwhaPageByResourceId(resourceId int) (*ManwhaPag
 		var currStr string
 		err = rows.Scan(&manwhaPage.id, &manwhaPage.pageNumber, &currStr)
 		if err != nil {
-			log.Warn("cannot scan url %s", err.Error())
+			log.Warnf("cannot scan url %s", err.Error())
 			continue
 		}
 		urls = append(urls, currStr)

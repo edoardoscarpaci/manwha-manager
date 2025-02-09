@@ -3,6 +3,7 @@ package drivers
 import (
 	"errors"
 	"fmt"
+	"log"
 	"mmanager/internal/manwhaparser"
 	"mmanager/internal/requests"
 	"net/http"
@@ -54,18 +55,15 @@ func (ad AsuraDriver) GetManwhaPage(manwhaResource *ManwhaResource, page uint16,
 	htmlPage, err := seleniumDriver.PageSource()
 
 	if err != nil {
-		panic(err)
-	}
-
-	//err = seleniumDriver.CloseWindow(combinedAddress)
-
-	if err != nil {
-		panic(err)
+		log.Print(err.Error())
+		return nil, errors.New("cannot get source with selenium")
 	}
 
 	startNode, err := html.Parse(strings.NewReader(htmlPage))
 	if err != nil {
-		panic(err)
+		log.Print(err.Error())
+		return nil, errors.New("cannot parse html page ")
+
 	}
 	if startNode == nil {
 		fmt.Println(htmlPage)
@@ -75,13 +73,13 @@ func (ad AsuraDriver) GetManwhaPage(manwhaResource *ManwhaResource, page uint16,
 	divNode, err := manwhaparser.FindTag(startNode, atom.Div, manwhaPageAttr[:])
 
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("no div node found for manwhaPageAttr ")
 	}
 
 	imgsNodes, err := manwhaparser.FindTags(divNode, atom.Img, nil)
 
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("no imgs node found ")
 	}
 
 	var manwhaPage *ManwhaPage = new(ManwhaPage)
@@ -100,7 +98,7 @@ func (ad AsuraDriver) GetManwhaPage(manwhaResource *ManwhaResource, page uint16,
 
 func (ad AsuraDriver) ListComicsOnPage(page uint16) ([]*ManwhaResource, error) {
 	var baseAddress string = ad.GetBaseAddress()
-	var compiledAddress string = fmt.Sprintf("%sseries?page=%d&genres=&status=-1&types=-1&order=desc", baseAddress, page)
+	var compiledAddress string = fmt.Sprintf("%sseries?page=%d&genres=&status=-1&types=-1&order=asc", baseAddress, page)
 
 	resp := make(chan *http.Response)
 	go requests.GetRequest(compiledAddress, resp)
@@ -109,13 +107,13 @@ func (ad AsuraDriver) ListComicsOnPage(page uint16) ([]*ManwhaResource, error) {
 	node, err := html.Parse(response.Body)
 
 	if err != nil {
-		panic(err)
+		return nil, errors.New("cannot parse body ")
 	}
 
 	foundNode, err := manwhaparser.FindTag(node, nodeTag, neededAttributes[:])
 
 	if err != nil {
-		panic(err)
+		return nil, errors.New("cannot find tag for page ")
 	}
 
 	if foundNode == nil {
@@ -125,7 +123,7 @@ func (ad AsuraDriver) ListComicsOnPage(page uint16) ([]*ManwhaResource, error) {
 
 	manwhaResources, err := getManwhaResourcesFromNode(foundNode)
 	if err != nil {
-		panic(err)
+		return nil, errors.New("cannot get manwha resource ")
 
 	}
 
@@ -160,9 +158,11 @@ func parseNodeForManwhaResource(node *html.Node) (*ManwhaResource, error) {
 	nodeHref := node.Attr[hrefIndex]
 	manwhaResource.address = baseAddress + nodeHref.Val
 	manwhaInformationNode, err := manwhaparser.FindTag(node, atom.Div, chapterInformationAttr[:])
+
 	if err != nil {
-		panic(err)
+		return nil, errors.New("cannot find tag for the chapter information")
 	}
+
 	for childNode := range manwhaInformationNode.ChildNodes() {
 		for _, attr := range childNode.Attr {
 			if attr == nameAttr {
@@ -171,7 +171,7 @@ func parseNodeForManwhaResource(node *html.Node) (*ManwhaResource, error) {
 			} else if attr == chapterAttr {
 				chapterNumber, err := strconv.Atoi(childNode.LastChild.Data)
 				if err != nil {
-					panic(err)
+					return nil, errors.New("could not convert chapter number")
 				}
 
 				manwhaResource.nChapter = uint16(chapterNumber)

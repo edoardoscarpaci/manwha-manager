@@ -35,7 +35,7 @@ func main() {
 	service, err := selenium.NewChromeDriverService("/home/edoardo/progetti/manwha-manager/mmanager/cmd/chromedriver", 4444)
 
 	if err != nil {
-		log.Fatal("Error:", err)
+		log.Print("Error:", err)
 	}
 
 	defer service.Stop()
@@ -55,13 +55,14 @@ func main() {
 	// create a new remote client with the specified options
 	seleniumDriver, err := selenium.NewRemote(caps, "")
 	if err != nil {
-		log.Fatal("Error:", err)
+		log.Print("Error:", err)
 	}
 	for _, resource := range resources {
 		firstResource := resource
 		page, err := driver.GetManwhaPage(firstResource, 1, seleniumDriver)
 		if err != nil {
-			panic(err)
+			log.Printf("Cannot get manwha page %d for %s skipping it", 1, firstResource.GetName())
+			continue
 		}
 
 		firstResource.AddPage(page)

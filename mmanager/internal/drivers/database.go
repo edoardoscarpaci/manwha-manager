@@ -1,8 +1,12 @@
 package drivers
 
 const (
+	ManwhaResourceTable string = "ManwhaResource"
+	ManwhaPageTable     string = "ManwhaPage"
+	ManwhaPageURLTable  string = "ManwhaPageURL"
+
 	CreateManwhaResourceTable string = `
-	CREATE TABLE IF NOT EXISTS ManwhaResource  (
+	CREATE TABLE IF NOT EXISTS ` + ManwhaResourceTable + `  (
 		id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
 		name TEXT NOT NULL,
 		address  TEXT NOT NULL,
@@ -13,68 +17,89 @@ const (
 	`
 
 	CreateManwhaPageTable string = `
-	CREATE TABLE IF NOT EXISTS ManwhaPage  (
+	CREATE TABLE IF NOT EXISTS ` + ManwhaPageTable + `  (
 		id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
 		pageNumber INTEGER NOT NULL,
 		resourceId INTEGER NOT NULL ,
-		FOREIGN KEY (resourceId) REFERENCES ManwhaResource(id)
+		FOREIGN KEY (resourceId) REFERENCES ` + ManwhaResourceTable + `(id)
 	)
 	`
 
 	CreateManwhaPageURLTable string = `
-	CREATE TABLE IF NOT EXISTS ManwhaPageURL  (
+	CREATE TABLE IF NOT EXISTS ` + ManwhaPageURLTable + `  (
 		id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
 		imageUrl Text NOT NULL,
 		pageId INTEGER NOT NULL ,
 		FOREIGN KEY (pageId) REFERENCES ManwhaPage(id)
 	)
 	`
-
 	InsertManwhaResource string = `
-	INSERT INTO ManwhaResource (name,address,nChapter,imageURL,driver)
-	VALUES($1,$2,$3,$4,$5) RETURNING id
+	INSERT INTO ` + ManwhaResourceTable + ` (name,address,nChapter,imageURL,driver)
+	VALUES($1,$2,$3,$4,$5) 
 	`
 
 	InsertManwhaPage string = `
-	INSERT INTO ManwhaPage (pageNumber,resourceId)
-	VALUES($1,$2) RETURNING id
+	INSERT INTO ` + ManwhaPageTable + ` (pageNumber,resourceId)
+	VALUES($1,$2) 
 	`
 
 	InsertManwhaPageURL string = `
-	INSERT INTO ManwhaPageURL (imageUrl,pageId)
-	VALUES($1,$2) RETURNING id
+	INSERT INTO ` + ManwhaPageURLTable + ` (imageUrl,pageId)
+	VALUES($1,$2) 
 	`
+
+	InsertIfNotExistManwhaResource string = `
+	INSERT INTO ` + ManwhaResourceTable + ` (name,address,nChapter,imageURL,driver)
+	SELECT $1, $2, $3, $4, $5
+	WHERE NOT EXISTS(SELECT 1 FROM ` + ManwhaResourceTable + ` WHERE name=$1 AND driver=$5);
+	SELECT id FROM ` + ManwhaResourceTable + ` WHERE name=$1 AND driver=$5
+	`
+
+	InsertIfNotExistManwhaPage string = `
+	INSERT INTO ` + ManwhaPageTable + ` (pageNumber,resourceId)
+	SELECT $1, $2
+	WHERE NOT EXISTS(SELECT 1 FROM ` + ManwhaPageTable + ` WHERE pageNumber=$1 AND resourceId=$2);
+	SELECT id FROM ` + ManwhaPageTable + ` WHERE pageNumber=$1 AND resourceId=$2
+	`
+
+	InsertIfNotExistManwhaPageURL string = `
+	INSERT INTO ` + ManwhaPageURLTable + ` (imageUrl,pageId)
+	SELECT $1, $2
+	WHERE NOT EXISTS(SELECT 1 FROM ` + ManwhaPageURLTable + ` WHERE imageUrl=$1 AND pageId=$2);
+	SELECT id FROM ` + ManwhaPageURLTable + ` WHERE imageUrl=$1 AND pageId=$2
+	`
+
 	SelectManwhaResource string = `
-	SELECT * FROM ManwhaResource
+	SELECT * FROM ` + ManwhaResourceTable + `
 	`
 	SelectManwhaPage string = `
-	SELECT * FROM ManwhaPage
+	SELECT * FROM ` + ManwhaPageTable + `
 	`
 	SelectManwhaPageURL string = `
-	SELECT * FROM ManwhaPageURL
+	SELECT * FROM ` + ManwhaPageURLTable + `
 	`
 	SelectManwhaResourceById string = `
-	SELECT * FROM ManwhaResource WHERE id=$1
+	SELECT * FROM ` + ManwhaResourceTable + ` WHERE id=$1
 	`
 	SelectManwhaPageById string = `
-	SELECT * FROM ManwhaPage WHERE id=$1
+	SELECT * FROM  ` + ManwhaPageTable + ` WHERE id=$1
 	`
 	SelectManwhaPageURLById string = `
-	SELECT * FROM ManwhaPageURL WHERE id=$1 
+	SELECT * FROM ` + ManwhaPageURLTable + ` WHERE id=$1 
 	`
 	SelectManwhaPageByResourceId string = `
-	SELECT * FROM ManwhaPage WHERE resourceId=$1
+	SELECT * FROM  ` + ManwhaPageTable + ` WHERE resourceId=$1
 	`
 	SelectManwhaPageURLByPageId string = `
-	SELECT * FROM ManwhaPageURL WHERE pageId=$1 
+	SELECT * FROM ` + ManwhaPageURLTable + ` WHERE pageId=$1 
 	`
 	JoinManwhaPage string = `
-	SELECT ManwhaPage.id,ManwhaPage.pageNumber,ManwhaPageURL.imageUrl FROM ManwhaPage
-	JOIN ManwhaPageURL ON ManwhaPage.id=ManwhaPageURL.pageId WHERE ManwhaPage.id=$1
+	SELECT ` + ManwhaPageTable + `.id,ManwhaPage.pageNumber,ManwhaPageURL.imageUrl FROM  ` + ManwhaPageTable + `
+	JOIN ` + ManwhaPageURLTable + ` ON ManwhaPage.id=ManwhaPageURL.pageId WHERE ManwhaPage.id=$1
 	`
 	JoinManwhaPageByResourceId string = `
-	SELECT ManwhaPage.id,ManwhaPage.pageNumber,ManwhaPageURL.imageUrl FROM ManwhaPage
-	JOIN ManwhaPageURL ON ManwhaPage.id=ManwhaPageURL.pageId WHERE ManwhaPage.resourceId=$1
+	SELECT ` + ManwhaPageTable + `.id,ManwhaPage.pageNumber,ManwhaPageURL.imageUrl FROM  ` + ManwhaPageTable + `
+	JOIN ` + ManwhaPageURLTable + ` ON ManwhaPage.id=ManwhaPageURL.pageId WHERE ManwhaPage.resourceId=$1
 	`
 )
 
